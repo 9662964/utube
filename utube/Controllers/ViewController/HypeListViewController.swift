@@ -42,7 +42,7 @@ class HypeListViewController: UIViewController {
                 HypeController.shared.hypes = hypes
                 self.updateViews()
             case .failure(let error):
-                print(error.errorDescription)
+                print(error.errorDescription ?? "There was an error fetching our hypes")
             }
         }
     }
@@ -55,27 +55,49 @@ class HypeListViewController: UIViewController {
         }
     }
     
-    func presentAddHypeAlert() {
+    func presentHypeAlert(hype: Hype?) {
         let alertController = UIAlertController(title: "Get Hype", message: "What is Hype may never die!", preferredStyle: .alert)
         
         alertController.addTextField { (textField) in
             textField.placeholder = "What is Hype today"
             textField.autocorrectionType = .yes
             textField.autocapitalizationType = .sentences
+            if let hype = hype {
+                textField.text = hype.body
+            }
         }
+        
         let cancelAction = UIAlertAction(title: "Cancel", style: .cancel)
         let addHypeAction = UIAlertAction(title: "Send", style: .default) { (_) in
             guard let text = alertController.textFields?.first?.text, !text.isEmpty else {return}
-            HypeController.shared.saveHype(body: text) { (result) in
-                switch result {
-                    
-                case .success(let hype):
-                    HypeController.shared.hypes.insert(hype, at: 0)
-                    self.updateViews()
-                case .failure(let error):
-                    print(error.errorDescription)
+            
+            if let hype = hype {
+                //update our hype
+                hype.body = text  //change hype.bod with lastest one
+                HypeController.shared.update(hype: hype) { (result) in
+                    switch result {
+                        
+                    case .success(_):
+                        self.updateViews()
+                    case .failure(let error):
+                        print(error.errorDescription ?? "There was an error updating out Hype")
+                    }
                 }
+            }else{
+                //
+                HypeController.shared.saveHype(body: text) { (result) in
+                    switch result {
+                        
+                    case .success(let hype):
+                        HypeController.shared.hypes.insert(hype, at: 0)
+                        self.updateViews()
+                    case .failure(let error):
+                        print(error.errorDescription ?? "There was an error saving our Hype")
+                    }
+                }
+
             }
+            
         }
         
         alertController.addAction(cancelAction)
@@ -84,8 +106,11 @@ class HypeListViewController: UIViewController {
     }//End of Function
     
     @IBAction func addBtnTapped(_ sender: Any) {
-        presentAddHypeAlert()
+        presentHypeAlert(hype: nil)
     }
+    
+    
+    
 }//End of class
 
 
@@ -102,6 +127,29 @@ extension HypeListViewController: UITableViewDelegate, UITableViewDataSource {
         
         return cell
     }
+ 
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        let hype = HypeController.shared.hypes[indexPath.row]
+        presentHypeAlert(hype: hype)
+    }
     
+    func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
+        if editingStyle == .delete {
+            let hypeToDelete = HypeController.shared.hypes[indexPath.row]
+            guard let index = HypeController.shared.hypes.firstIndex(of: hypeToDelete) else {return}
+            HypeController.shared.delete(hype: hypeToDelete) { (result) in
+                switch result {
+                    
+                case .success(_):
+                    HypeController.shared.hypes.remove(at: index)
+                    DispatchQueue.main.async {
+                        tableView.deleteRows(at: [indexPath], with: .fade)
+                    }
+                case .failure(let error):
+                    print(error.errorDescription ?? "There was an error deleting the Hype")
+                }
+            }
+        }
+    }
     
 }

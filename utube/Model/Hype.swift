@@ -18,10 +18,13 @@ struct HypeConstants {
 class Hype {
     var body: String
     var timestamp: Date
+    var recordID: CKRecord.ID
     
-    init(body: String, timestamp: Date = Date()) {
+    //every hype, will get record id
+    init(body: String, timestamp: Date = Date(), recordID: CKRecord.ID = CKRecord.ID(recordName: UUID().uuidString)) {
         self.body = body
         self.timestamp = timestamp
+        self.recordID = recordID
     }
 }
 
@@ -29,7 +32,7 @@ class Hype {
 //take Hype and convert to CkRecord
 extension CKRecord {
     convenience init(hype: Hype) {
-        self.init(recordType: HypeConstants.recordTypeKey)
+        self.init(recordType: HypeConstants.recordTypeKey, recordID: hype.recordID)
 //        Option 1
 //        self.init(recordType: HypeConstants.recordTypeKey)
 //        self.setValue(hype.body, forKey: HypeConstants.bodyKey)
@@ -49,6 +52,14 @@ extension Hype {
         guard let body = ckRecord[HypeConstants.bodyKey] as? String,
             let timestamp = ckRecord[HypeConstants.timestampKey] as? Date else {return nil}
     
-        self.init(body: body, timestamp: timestamp)
+        self.init(body: body, timestamp: timestamp, recordID: ckRecord.recordID)
     }
+}
+
+extension Hype: Equatable {
+    static func == (lhs: Hype, rhs: Hype) -> Bool {
+        return lhs.recordID == rhs.recordID
+    }
+    
+    
 }

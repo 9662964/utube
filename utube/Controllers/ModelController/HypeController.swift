@@ -69,6 +69,56 @@ class HypeController {
     }
     //Update
     
+    func update(hype: Hype, completion: @escaping (Result<Hype, HypeError>) -> Void) {
+        
+        //2.1 : Create a record from our hype to pass into our operation
+        let record =  CKRecord(hype: hype)
+        //2 : Create the operation
+        let operation = CKModifyRecordsOperation(recordsToSave: [record], recordIDsToDelete: nil)
+        
+        //3 : Adjust the properties for the operation
+        operation.savePolicy = .changedKeys  //only update changed body instead of creating whole things
+        operation.qualityOfService = .userInteractive //Highest level of importnt, want to update right away
+        operation.modifyRecordsCompletionBlock = {(records, _, error) in
+            //4 : Handle any error
+            if let error = error {
+                print("There was an error modifying your the Hype -- \(error) -- \(error.localizedDescription)")
+                return completion(.failure(.ckError(error)))
+            }
+            //5: Unwrap the record that was updated and create a hype from it
+            guard let record = records?.first,
+                let updatedHype = Hype(ckRecord: record) else {return completion(.failure(.couldNotUnwrap))}
+            
+            //6 : Complete success, passing in the updata hype
+            completion(.success(updatedHype))
+        }
+        //1 : Add an operation to the database
+        publicDB.add(operation)
+    }
+
+    
     //Delete
+    
+    func delete(hype: Hype, completion: @escaping (Result<Bool, HypeError>) -> Void) {
+        
+        
+        let operation = CKModifyRecordsOperation(recordsToSave: nil, recordIDsToDelete: [hype.recordID])
+        operation.qualityOfService = .userInteractive
+        operation.modifyRecordsCompletionBlock = {(_, recordIDs, error) in
+            if let error = error {
+                print("There was an error deletig a Hype record \(error) -- \(error.localizedDescription)")
+                return completion(.failure(.ckError(error)))
+            }
+            
+            guard let recordIDs = recordIDs else {return completion(.failure(.couldNotUnwrap))}
+            if recordIDs.count > 0 {
+                print("Deleted Record(s) from CloudKit \(recordIDs)")
+                completion(.success(true))
+            } else {
+                return completion(.failure(.unableToDeleteRecord))
+            }
+        }
+        publicDB.add(operation)
+    }
     
 }

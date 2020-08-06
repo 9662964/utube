@@ -7,30 +7,68 @@
 //
 
 import UIKit
+import UserNotifications
+import CloudKit
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
 
-
+    //for notification
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        
+         application.applicationIconBadgeNumber = 0
+        
+        UNUserNotificationCenter.current().requestAuthorization(options: [.badge, .sound, .alert]) { (success, error) in
+            if let error = error {
+                print("There was an error when requesting authorization to send the user a notification \(error) -- \(error.localizedDescription)")
+            }
+            if success {
+                //register user for notification
+                DispatchQueue.main.async {
+                    UIApplication.shared.registerForRemoteNotifications()
+                }
+            }
+        }
         return true
     }
-
-    // MARK: UISceneSession Lifecycle
-
-    func application(_ application: UIApplication, configurationForConnecting connectingSceneSession: UISceneSession, options: UIScene.ConnectionOptions) -> UISceneConfiguration {
-        // Called when a new scene session is being created.
-        // Use this method to select a configuration to create the new scene with.
-        return UISceneConfiguration(name: "Default Configuration", sessionRole: connectingSceneSession.role)
+    
+    //for notification
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        //subscribe the user for notification
+        HypeController.shared.subscribeForRemoteNotifications { (error) in
+            if let error = error {
+                print("There was an error subscibing or remote notifications -\(error) -- \(error.localizedDescription)")
+            }
+        }
+        
+        
     }
 
-    func application(_ application: UIApplication, didDiscardSceneSessions sceneSessions: Set<UISceneSession>) {
-        // Called when the user discards a scene session.
-        // If any sessions were discarded while the application was not running, this will be called shortly after application:didFinishLaunchingWithOptions.
-        // Use this method to release any resources that were specific to the discarded scenes, as they will not return.
+    //for notification
+    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        print("We failed to register for remote notifications \(error) --\(error.localizedDescription)")
     }
+    
+    //for notification
+    func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable : Any], fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+        HypeController.shared.fetchAllHypes { (result) in
+            switch result {
+                
+            case .success(let hypes):
+                HypeController.shared.hypes = hypes
+            case .failure(_):
+                print("Failed to fetch Hypes")
+            }
+            
+        }
+    }
+    
+    //for notification
+    func applicationDidBecomeActive(_ application: UIApplication) {
+       
+    }
+
 
 
 }

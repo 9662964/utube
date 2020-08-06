@@ -7,6 +7,8 @@
 //
 
 import UIKit
+import CloudKit
+import UserNotifications
 
 class HypeListViewController: UIViewController {
     

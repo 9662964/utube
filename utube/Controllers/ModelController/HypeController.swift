@@ -121,4 +121,29 @@ class HypeController {
         publicDB.add(operation)
     }
     
+    //CKSubscription
+    func subscribeForRemoteNotifications(completion: @escaping (Error?) -> Void) {
+       
+        
+        let predicate = NSPredicate(value: true)
+        //will observe data type of all Hype,
+        let subscription = CKQuerySubscription(recordType: HypeConstants.recordTypeKey, predicate: predicate, options: .firesOnRecordCreation)
+        
+        let notificationInfo = CKSubscription.NotificationInfo()
+        notificationInfo.title = "ChOO CHOO"
+        notificationInfo.alertBody = "Cant stop the Hype train"
+        notificationInfo.shouldBadge = true
+        notificationInfo.soundName = "default"
+        
+        subscription.notificationInfo = notificationInfo
+        
+        publicDB.save(subscription) { (_, error) in
+            if let error = error {
+                print("There was an error subsctibing to Hype Creatings -\(error) -\(error.localizedDescription)")
+                return completion(error)
+            }
+            completion(nil)
+        }
+    }
+    
 }
